@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f3">
+  <title>Parqueadero inteligente</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #27312f;
+      --muted: #707a77;
+      --line: #cbd2cf;
+      --surface: #fff;
+      --canvas: #f5f6f3;
+      --green: #23785d;
+      --green-soft: #e7f3ed;
+      --red: #9a4b45;
+      --red-soft: #f8e9e7;
+      --shadow: 0 20px 60px rgb(32 45 40 / 12%);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background: #e9edeb;
+    }
+
+    button { color: inherit; font: inherit; }
+
+    .device {
+      width: min(100%, 430px);
+      min-height: min(900px, calc(100vh - 48px));
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+      border: 1px solid #d5dbd8;
+      border-radius: 34px;
+      background: var(--canvas);
+      box-shadow: var(--shadow);
+    }
+
+    .status-bar {
+      height: 42px;
+      padding: 0 25px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .system-icons { display: flex; gap: 6px; align-items: center; }
+    .system-icons svg { width: 16px; height: 16px; }
+
+    main { padding: 2px 22px 32px; }
+
+    .topbar {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+      text-align: center;
+      flex: 1;
+    }
+
+    .topbar-spacer { width: 38px; }
+
+    .settings-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .settings-mark svg { width: 23px; height: 23px; }
+
+    .overview {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 18px;
+    }
+
+    .occupancy {
+      min-height: 84px;
+      padding: 14px 12px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      border: 1.5px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+    }
+
+    .occupancy > svg { width: 38px; height: 38px; flex: 0 0 auto; }
+    .occupancy-copy { font-size: 14px; line-height: 1.65; }
+    .occupancy-copy strong { font-weight: 650; }
+
+    .spaces {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .space-item {
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      text-align: center;
+    }
+
+    .space-square {
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 1.5px solid #aeb8b4;
+      border-radius: 12px;
+      background: #f0f2ef;
+      font-size: 17px;
+      font-weight: 600;
+      transition: background 150ms ease, color 150ms ease, transform 150ms ease;
+    }
+
+    .space-item.occupied .space-square { color: white; border-color: #394440; background: #394440; }
+    .space-label { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
+
+    .panel {
+      padding: 14px 15px 15px;
+      border: 1.5px solid var(--line);
+      border-radius: 17px;
+      background: var(--surface);
+    }
+
+    .panel + .panel { margin-top: 14px; }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 13px;
+      font-size: 17px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .panel-heading svg { width: 24px; height: 24px; flex: 0 0 auto; }
+
+    .readings { display: grid; gap: 8px; }
+
+    .reading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: baseline;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .reading dt { color: #505a57; }
+    .reading dd { min-width: 103px; margin: 0; font-weight: 650; text-align: left; }
+    .value-free { color: var(--green); }
+    .value-occupied { color: var(--red); }
+
+    .demo-note {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .status-tile {
+      min-height: 74px;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      border: 1.5px solid #c5cdca;
+      border-radius: 12px;
+      background: #fcfdfb;
+    }
+
+    .status-tile svg { width: 29px; height: 29px; flex: 0 0 auto; }
+    .tile-label { display: block; color: var(--muted); font-size: 13px; line-height: 1.2; }
+    .tile-value { display: block; margin-top: 3px; font-size: 13px; line-height: 1.2; font-weight: 700; }
+    .tile-value.good { color: var(--green); }
+    .tile-value.alert { color: var(--red); }
+
+    .home-indicator {
+      width: 110px;
+      height: 5px;
+      position: absolute;
+      left: 50%;
+      bottom: 10px;
+      transform: translateX(-50%);
+      border-radius: 8px;
+      background: #303936;
+    }
+
+    @media (max-width: 480px) {
+      body { display: block; padding: 0; background: var(--canvas); }
+      .device { width: 100%; min-height: 100vh; min-height: 100dvh; border: 0; border-radius: 0; box-shadow: none; }
+      .status-bar { padding: 0 24px; }
+      main { padding-right: 20px; padding-left: 20px; }
+    }
+
+    @media (max-height: 760px) and (min-width: 481px) {
+      body { padding: 12px; }
+      .device { min-height: calc(100vh - 24px); }
+      main { padding-bottom: 28px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="device">
+    <div class="status-bar" aria-label="Barra de estado">
+      <span>9:41</span>
+      <span class="system-icons" aria-hidden="true">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 16h2V9H2zm4 0h2V6H6zm4 0h2V3h-2zm4 0h2V1h-2z"/></svg>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2.5 7.5a11 11 0 0 1 15 0M5.5 10.5a6.5 6.5 0 0 1 9 0M8.5 13.5a2.2 2.2 0 0 1 3 0"/><circle cx="10" cy="16" r=".8" fill="currentColor" stroke="none"/></svg>
+        <svg viewBox="0 0 22 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1" y="3" width="17" height="12" rx="2"/><path d="M20 7v4"/><rect x="3" y="5" width="12" height="8" rx="1" fill="currentColor" stroke="none"/></svg>
+      </span>
+    </div>
+
+    <main>
+      <header class="topbar">
+        <span class="topbar-spacer" aria-hidden="true"></span>
+        <h1>Parqueadero Inteligente</h1>
+        <span class="settings-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 3.1-.2-.1a1.7 1.7 0 0 0-1.9.2l-.2.1h-3.5l-.1-.2a1.7 1.7 0 0 0-1.7-1.1 1.7 1.7 0 0 0-1.1.4l-.2.1-3-1.8.1-.2a1.7 1.7 0 0 0-.2-1.9l-.1-.2v-3.5l.2-.1a1.7 1.7 0 0 0 1.1-1.7 1.7 1.7 0 0 0-.4-1.1l-.1-.2 1.8-3 .2.1a1.7 1.7 0 0 0 1.9-.2l.2-.1h3.5l.1.2a1.7 1.7 0 0 0 1.7 1.1 1.7 1.7 0 0 0 1.1-.4l.2-.1 3 1.8-.1.2a1.7 1.7 0 0 0 .2 1.9l.1.2v3.5z" transform="translate(-.4 -1) scale(.94)"/></svg>
+        </span>
+      </header>
+
+      <section class="overview" aria-label="Ocupación del parqueadero">
+        <div class="occupancy">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 20 3-9h24l3 9 3 4v12h-4v-4H10v4H6V24z"/><path d="M9 20h30M12 28h5m14 0h5"/><circle cx="14" cy="27" r="1.5"/><circle cx="34" cy="27" r="1.5"/></svg>
+          <div class="occupancy-copy"><div>Disponibles: <strong id="available-count">2</strong></div><div>En uso: <strong id="occupied-count">1</strong></div></div>
+        </div>
+        <div class="spaces" aria-label="Puestos de parqueo">
+          <div class="space-item"><span class="space-square">P1</span><span class="space-label">Libre</span></div>
+          <div class="space-item"><span class="space-square">P2</span><span class="space-label">Libre</span></div>
+          <div class="space-item occupied"><span class="space-square">P3</span><span class="space-label">Ocupado</span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="readings-heading">
+        <h2 class="panel-heading" id="readings-heading">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg>
+          Lecturas del sistema
+        </h2>
+        <dl class="readings">
+          <div class="reading"><dt>Sensor P1</dt><dd class="value-free">46.8 cm · Libre</dd></div>
+          <div class="reading"><dt>Sensor P2</dt><dd class="value-free">53.2 cm · Libre</dd></div>
+          <div class="reading"><dt>Sensor P3</dt><dd class="value-occupied">8.4 cm · Ocupado</dd></div>
+          <div class="reading"><dt>Proximidad de acceso</dt><dd class="value-free">Sin detección</dd></div>
+        </dl>
+        <p class="demo-note">Datos de muestra para el prototipo · Arduino sin conectar</p>
+      </section>
+
+      <section class="panel" aria-labelledby="status-heading">
+        <h2 class="panel-heading" id="status-heading">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 3.1-.2-.1a1.7 1.7 0 0 0-1.9.2l-.2.1h-3.5l-.1-.2a1.7 1.7 0 0 0-1.7-1.1 1.7 1.7 0 0 0-1.1.4l-.2.1-3-1.8.1-.2a1.7 1.7 0 0 0-.2-1.9l-.1-.2v-3.5l.2-.1a1.7 1.7 0 0 0 1.1-1.7 1.7 1.7 0 0 0-.4-1.1l-.1-.2 1.8-3 .2.1a1.7 1.7 0 0 0 1.9-.2l.2-.1h3.5l.1.2a1.7 1.7 0 0 0 1.7 1.1 1.7 1.7 0 0 0 1.1-.4l.2-.1 3 1.8-.1.2a1.7 1.7 0 0 0 .2 1.9l.1.2v3.5z" transform="translate(-.4 -1) scale(.94)"/></svg>
+          Estado del parqueadero
+        </h2>
+        <div class="status-grid">
+          <div class="status-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6m-5 3h4M8.5 14.5A7 7 0 1 1 15.5 14c-.8.6-1.2 1.5-1.2 2.5h-4.6c0-1-.4-1.5-1.2-2z"/></svg><div><span class="tile-label">Luces LED</span><span class="tile-value good">Encendidas</span></div></div>
+          <div class="status-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4m8.4 0a6 6 0 0 0 0-8.4M4.9 4.9a10 10 0 0 0 0 14.2m14.2 0a10 10 0 0 0 0-14.2"/></svg><div><span class="tile-label">Proximidad</span><span class="tile-value good">Sin vehículo</span></div></div>
+          <div class="status-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="5" height="9" rx="1"/><circle cx="6.5" cy="14.5" r="1"/><path d="M8 11 20 5m-1-2 2 4M7 10V6"/></svg><div><span class="tile-label">Servomotor</span><span class="tile-value">0° · Cerrado</span></div></div>
+          <div class="status-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h3m10 0h3M7 8a7 7 0 0 1 10 0m-10 8a7 7 0 0 0 10 0"/><circle cx="12" cy="12" r="2"/></svg><div><span class="tile-label">Lecturas</span><span class="tile-value good">3/3 sensores</span></div></div>
+        </div>
+      </section>
+    </main>
+    <div class="home-indicator" aria-hidden="true"></div>
+  </div>
+
+</body>
+</html>
